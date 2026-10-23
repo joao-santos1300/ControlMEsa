@@ -1,0 +1,120 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  WAITER
+  KITCHEN
+}
+
+enum TableStatus {
+  FREE
+  OCCUPIED
+}
+
+enum OrderStatus {
+  OPEN
+  PREPARING
+  READY
+  CLOSED
+  CANCELED
+}
+
+enum ItemStatus {
+  PENDING
+  PREPARING
+  READY
+  CANCELED
+}
+
+model User {
+  id         String    @id @default(uuid())
+  name       String
+  email      String    @unique
+  password   String
+  role       Role
+  active     Boolean   @default(true)
+  created_at DateTime  @default(now())
+  updated_at DateTime? @updatedAt
+  orders     Order[]
+
+  @@map("users")
+}
+
+model Category {
+  id         String    @id @default(uuid())
+  name       String    @unique
+  created_at DateTime  @default(now())
+  updated_at DateTime? @updatedAt
+  products   Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id          String      @id @default(uuid())
+  name        String
+  description String
+  price       Decimal     @db.Decimal(10, 2)
+  active      Boolean     @default(true)
+  categoryId  String
+  category    Category    @relation(fields: [categoryId], references: [id])
+  created_at  DateTime    @default(now())
+  updated_at  DateTime?   @updatedAt
+  items       OrderItem[]
+
+  @@map("products")
+}
+
+model Table {
+  id         String      @id @default(uuid())
+  number     Int         @unique
+  name       String?
+  status     TableStatus @default(FREE)
+  active     Boolean     @default(true)
+  created_at DateTime    @default(now())
+  updated_at DateTime?   @updatedAt
+  orders     Order[]
+
+  @@map("tables")
+}
+
+model Order {
+  id         String      @id @default(uuid())
+  status     OrderStatus @default(OPEN)
+  notes      String?
+  customerName String?
+  tableId    String
+  table      Table     @relation(fields: [tableId], references: [id])
+  waiterId   String
+  waiter     User        @relation(fields: [waiterId], references: [id])
+  items      OrderItem[]
+  created_at DateTime    @default(now())
+  updated_at DateTime?   @updatedAt
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id         String     @id @default(uuid())
+  quantity   Int
+  unitPrice  Decimal    @db.Decimal(10, 2)
+  notes      String?
+  status     ItemStatus @default(PENDING)
+  changed    Boolean    @default(false)
+  paidQuantity Int      @default(0)
+  orderId    String
+  order      Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product    @relation(fields: [productId], references: [id])
+  created_at DateTime   @default(now())
+  updated_at DateTime?  @updatedAt
+
+  @@map("order_items")
+}
